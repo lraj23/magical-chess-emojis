@@ -1,3 +1,8 @@
+# Magical Chess Emojis
+
+## To Be Completed
+For now, here is the readme of [Competitive Chess Emojis](https://github.com/lraj23/competitive-chess-emojis), which isn't *TOO* different from this bot (yet...):
+
 # Competitive Chess Emojis
 
 ### Main Purpose

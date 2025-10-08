@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 const dataFile = "mchessemojis.json";
 const dataFilePath = join(import.meta.dirname, dataFile);
-let CCEmojis = JSON.parse(fs.readFileSync(dataFilePath, "utf8"));
+let MChessEmojis = JSON.parse(fs.readFileSync(dataFilePath, "utf8"));
 const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const logStream = fs.createWriteStream(join(import.meta.dirname, "updates.log"), {
 	"flags": "a",
@@ -54,12 +54,12 @@ async function logInteraction(interaction) {
 	}
 }
 
-function getCCEmojis() {
-	return cloneObj(CCEmojis);
+function getMChessEmojis() {
+	return cloneObj(MChessEmojis);
 }
 
 function saveState(data) {
-	CCEmojis = cloneObj(data);
+	MChessEmojis = cloneObj(data);
 
 	let saveObj = cloneObj(data);
 	delete saveObj.debug;
@@ -92,7 +92,7 @@ function cloneObj(obj) {
 
 export {
 	saveState,
-	getCCEmojis,
+	getMChessEmojis,
 	logInteraction,
 	getUserAt,
 };
