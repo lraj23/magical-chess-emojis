@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { join } from "node:path";
 
-const dataFile = "ccemojis.json";
+const dataFile = "mchessemojis.json";
 const dataFilePath = join(import.meta.dirname, dataFile);
 let CCEmojis = JSON.parse(fs.readFileSync(dataFilePath, "utf8"));
 const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
