@@ -1,8 +1,7 @@
 import app from "./client.js";
 import { getMChessEmojis, logInteraction, saveState } from "./datahandler.js";
-const aiApiUrl = "https://openrouter.ai/api/v1/chat/completions";
+const aiApiUrl = "https://ai.hackclub.com/chat/completions";
 const headers = {
-	"Authorization": `Bearer ${process.env.CEMOJIS_AI_API_KEY}`,
 	"Content-Type": "application/json"
 };
 const mainEmojis = [
@@ -70,7 +69,6 @@ app.message('', async ({ message }) => {
 	let MChessEmojis = getMChessEmojis();
 	let userId = message.user;
 	let isInConvo = isInConversation(userId, MChessEmojis) && convoIsIn(userId, MChessEmojis).channel === message.channel;
-	console.log(isInConvo);
 	if (!MChessEmojis.gameOptedIn.includes(userId)) {
 		if (message.channel === lraj23BotTestingId) await app.client.chat.postEphemeral({
 			channel: lraj23BotTestingId,
@@ -97,8 +95,7 @@ app.message('', async ({ message }) => {
 		});
 		return;
 	}
-	console.log(Date.now(), MChessEmojis.apiRequests, MChessEmojis.apiRequests[userId])
-	if (message.ts - MChessEmojis.apiRequests[userId] < 5) {
+	if (message.ts - MChessEmojis.apiRequests[userId] < 1) {
 		await app.client.reactions.add({
 			"channel": message.channel,
 			"name": "you-sent-a-message-too-fast-so-no-ai-request-to-avoid-rate-limit",
@@ -120,13 +117,12 @@ app.message('', async ({ message }) => {
 		latest: message.ts * 1000,
 		limit: 30
 	})).messages.filter((msg, i) => (MChessEmojis.dataOptedIn.includes(msg.user) && i)).reverse());
-	console.log(pastMessages);
 	console.log(message.text);
 	const response = await fetch(aiApiUrl, {
 		method: "POST",
 		headers,
 		body: JSON.stringify({
-			"model": "openai/gpt-oss-20b:free",
+			"model": "openai/gpt-oss-120b",
 			"messages": [
 				{
 					"role": "system",
@@ -155,7 +151,6 @@ app.message('', async ({ message }) => {
 			});
 		return;
 	}
-	console.log(data, data.choices);
 	console.log(data.choices[0].message);
 	let reactions = data.choices[0].message.content.split(" ");
 	if (isInConvo) {
@@ -353,14 +348,12 @@ app.action(/^ignore-.+$/, async interaction => await interaction.ack());
 
 app.action('cancel', async interaction => [await interaction.ack(), await interaction.respond({ "delete_original": true })]);
 
-const getValues = interaction => Object.fromEntries(Object.values(interaction.body.state.values).map(inputInfo => [(key => key[key.length - 1])(Object.entries(inputInfo)[0][0].split("-")), (input => ("selected_option" in input) ? input.selected_option?.value : (input || input))(Object.entries(inputInfo)[0][1])]));
+// const getValues = interaction => Object.fromEntries(Object.values(interaction.body.state.values).map(inputInfo => [(key => key[key.length - 1])(Object.entries(inputInfo)[0][0].split("-")), (input => ("selected_option" in input) ? input.selected_option?.value : (input || input))(Object.entries(inputInfo)[0][1])]));
 
 app.action('confirm', async interaction => {
 	await interaction.ack();
 	let MChessEmojis = getMChessEmojis();
 	let whiteId = interaction.body.user.id;
-	console.log(interaction.body.state.values);
-	console.log(getValues(interaction));
 	let blackId = interaction.body.state.values[Object.keys(interaction.body.state.values)[0]]["ignore-start-black"].selected_user || whiteId;
 
 	if (isInConversation(blackId, MChessEmojis))
@@ -448,8 +441,6 @@ app.action('resign', async interaction => {
 	let MChessEmojis = getMChessEmojis();
 	let resignId = interaction.body.user.id;
 	let conversation = convoIsIn(resignId, MChessEmojis);
-	console.log(interaction.body.state.values);
-	console.log(getValues(interaction));
 	let winnerId = conversation.black === resignId ? conversation.white : conversation.black;
 
 	let coinsLost = Math.floor(Math.random() * -2) - 5;
@@ -460,9 +451,7 @@ app.action('resign', async interaction => {
 		text: `<@${resignId}> has resigned their Magical Chess Emojis game against you in <#${interaction.body.channel.id}>. They lost ${-coinsLost} :siege-coin: for resigning.`
 	});
 	MChessEmojis.conversations.splice(MChessEmojis.conversations.indexOf(conversation), 1);
-	console.log("removed convo");
 	saveState(MChessEmojis);
-	console.log("saved removed convo");
 });
 
 app.command('/mchessemojis-leaderboard', async interaction => [await interaction.ack(), await interaction.respond(`This is the Magical Chess Emojis game leaderboard! :siege-coin:\n\n` + Object.entries(getMChessEmojis().coins).sort((a, b) => b[1] - a[1]).map(user => `<@${user[0]}> has ${user[1]} :siege-coin:!`).join("\n"))]);
@@ -501,9 +490,7 @@ app.message(/secret button/i, async ({ message }) => {
 });
 
 app.action('button_click', async ({ body, ack, respond }) => {
-	// Acknowledge the action
 	await ack();
-	console.log(body.channel.id, body.user.id, body.container.message_ts, body.container, body.container.message);
 	await app.client.chat.postEphemeral({
 		channel: body.channel.id,
 		user: body.user.id,
