@@ -61,16 +61,13 @@ const magicalSystemMessage = `The user message consists of a message that is sen
 Finally, this is the entire conversation so far. Just so you know, it's currently `;
 const lraj23BotTestingId = "C09GR27104V";
 const lraj23UserId = "U0947SL6AKB";
-const blackListedChannels = [
-	"C0188CY57PZ" // #meta
-];
 
 const isInConversation = (userId, MChessEmojis) => !MChessEmojis.conversations.map(convo => [convo.white, convo.black]).flat().reduce((product, id) => product * (+!(id === userId)), 1);
 const convoIsIn = (userId, MChessEmojis) => MChessEmojis.conversations.find(convo => [convo.white, convo.black].includes(userId));
 
 app.message('', async ({ message }) => {
-	if (blackListedChannels.includes(message.channel)) return;
 	let MChessEmojis = getMChessEmojis();
+	if (!Object.keys(MChessEmojis.whiteListedChannels).includes(message.channel)) return;
 	let userId = message.user;
 	let isInConvo = isInConversation(userId, MChessEmojis) && convoIsIn(userId, MChessEmojis).channel === message.channel;
 	if (!MChessEmojis.gameOptedIn.includes(userId)) {
@@ -109,18 +106,18 @@ app.message('', async ({ message }) => {
 			await app.client.chat.postEphemeral({
 				channel: message.channel,
 				user: userId,
-				text: `Your message was not reacted to because, in order to avoid getting rate limited, there is a cooldown of 5 seconds per user. :you-sent-a-message-too-fast-so-no-ai-request-to-avoid-rate-limit:`,
+				text: `Your message was not reacted to because, in order to avoid getting rate limited, there is a cooldown of 1 second per user. :you-sent-a-message-too-fast-so-no-ai-request-to-avoid-rate-limit:`,
 				thread_ts: ((message.thread_ts == message.ts) ? undefined : message.thread_ts)
 			});
 		return;
 	} else MChessEmojis.apiRequests[userId] = message.ts;
 	saveState(MChessEmojis);
-	let pastMessages = (isInConvo ? convoIsIn(userId, MChessEmojis).messages : (await app.client.conversations.history({
+	let pastMessages = isInConvo ? convoIsIn(userId, MChessEmojis).messages : (await app.client.conversations.history({
 		token: process.env.CEMOJIS_BOT_TOKEN,
 		channel: message.channel,
 		latest: message.ts * 1000,
 		limit: 30
-	})).messages.filter((msg, i) => (MChessEmojis.dataOptedIn.includes(msg.user) && i)).reverse());
+	})).messages.filter((msg, i) => (MChessEmojis.dataOptedIn.includes(msg.user) && i)).reverse();
 	console.log(message.text);
 	const response = await fetch(aiApiUrl, {
 		method: "POST",
@@ -465,6 +462,47 @@ app.command('/mchessemojis-leaderboard', async interaction => await interaction.
 // [await interaction.ack(), await interaction.respond(`This is the Magical Chess Emojis game leaderboard! :siege-coin:\n\n` + Object.entries(getMChessEmojis().coins).sort((a, b) => b[1] - a[1]).map(user => `<@${user[0]}> has ${user[1]} :siege-coin:!`).join("\n"))]);
 
 app.command('/mchessemojis-help', async interaction => [await interaction.ack(), await interaction.respond(`This is the Magical Chess Emojis bot! However, this help command can only help you for the Competitive Chess Emojis bot! Here is the help for that bot: The point of this is to earn coins through conversations worth coins against other people. Your coins are based on how each message is rated as a chess move. Since this uses AI to determine how good a message is, you have to opt IN for it to work.\nFor more information, check out the readme at https://github.com/lraj23/competitive-chess-emojis`), interaction.payload.user_id === lraj23UserId ? await interaction.respond(`Test but only for <@${lraj23UserId}>. If you aren't him and you see this message, DM him IMMEDIATELY about this!`) : null]);
+
+app.command('/mchessemojis-channel-opt-in', async interaction => {
+	await interaction.ack();
+	await logInteraction(interaction);
+	const channelId = interaction.command.channel_id;
+	const userId = interaction.payload.user_id;
+	const channelInfo = await interaction.client.conversations.info({
+		channel: channelId,
+		include_full_members: true
+	});
+	console.log(channelInfo.channel.creator);
+	if (!(channelInfo.channel.creator === userId)) return await interaction.respond(`You aren't the channel creator, so you can not opt this bot in or out of the channel. :resign-move: You may have meant to run /mchessemojis-game-opt-in instead`);
+
+	const channelName = channelInfo.channel.name;
+	let MChessEmojis = getMChessEmojis();
+	if (Object.keys(MChessEmojis.whiteListedChannels).includes(channelId))
+		return await interaction.respond(`You have already opted <#${channelId}> into this bot! :${mainEmojis[8]}:`);
+	await interaction.say(`<@${userId}> opted <#${channelId}> into this bot! :${sideEmojis[3]}:`);
+	MChessEmojis.whiteListedChannels[channelId] = channelName;
+	saveState(MChessEmojis);
+});
+
+app.command('/mchessemojis-channel-opt-out', async interaction => {
+	await interaction.ack();
+	await logInteraction(interaction);
+	const channelId = interaction.command.channel_id;
+	const userId = interaction.payload.user_id;
+	const channelInfo = await interaction.client.conversations.info({
+		channel: channelId,
+		include_full_members: true
+	});
+	console.log(channelInfo.channel.creator);
+	if (!(channelInfo.channel.creator === userId)) return await interaction.respond(`You aren't the channel creator, so you can not opt this bot in or out of the channel. :resign-move: You may have meant to run /mchessemojis-game-opt-out instead`);
+
+	let MChessEmojis = getMChessEmojis();
+	if (!Object.keys(MChessEmojis.whiteListedChannels).includes(channelId))
+		return await interaction.respond(`You can't opt <#${channelId}> out because it isn't opted in! :${sideEmojis[4]}:`);
+	await interaction.say(`<@${userId}> opted <#${channelId}> out of this bot! :${mainEmojis[11]}:`);
+	delete MChessEmojis.whiteListedChannels[channelId];
+	saveState(MChessEmojis);
+});
 
 app.message(/secret button/i, async ({ message }) => {
 	await app.client.chat.postEphemeral({
