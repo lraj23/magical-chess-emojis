@@ -22,7 +22,7 @@ function getUserAt(text) {
 }
 
 function log(message) {
-	let now = new Date();
+	const now = new Date();
 	let timecode = "["
 		+ now.getFullYear()
 		+ "_"
@@ -44,8 +44,8 @@ function log(message) {
 }
 
 async function logInteraction(interaction) {
-	let user = `<@${interaction.payload.user_id || interaction.body.user.id || "<no id>"}|${interaction.payload.user_name || interaction.body.user.name || "<no name>"}>`;
-	let channel = interaction.payload.channel_name || interaction.body.channel.name || "<no channel>";
+	const user = `<@${interaction.payload.user_id || interaction.body.user.id || "<no id>"}|${interaction.payload.user_name || interaction.body.user.name || "<no name>"}>`;
+	const channel = interaction.payload.channel_name || interaction.body.channel.name || "<no channel>";
 
 	if (interaction.command) {
 		log(`[${channel}] ${user} ran command ${interaction.command.command}`);

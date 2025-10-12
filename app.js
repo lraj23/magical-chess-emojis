@@ -60,8 +60,8 @@ const convoIsIn = (userId, MChessEmojis) => MChessEmojis.conversations.find(conv
 app.message('', async ({ message }) => {
 	let MChessEmojis = getMChessEmojis();
 	if (!Object.keys(MChessEmojis.whiteListedChannels).includes(message.channel)) return;
-	let userId = message.user;
-	let isInConvo = isInConversation(userId, MChessEmojis) && convoIsIn(userId, MChessEmojis).channel === message.channel;
+	const userId = message.user;
+	const isInConvo = isInConversation(userId, MChessEmojis) && convoIsIn(userId, MChessEmojis).channel === message.channel;
 	if (!MChessEmojis.gameOptedIn.includes(userId)) {
 		if (message.channel === lraj23BotTestingId) await app.client.chat.postEphemeral({
 			channel: lraj23BotTestingId,
@@ -104,7 +104,7 @@ app.message('', async ({ message }) => {
 		return;
 	} else MChessEmojis.apiRequests[userId] = message.ts;
 	saveState(MChessEmojis);
-	let pastMessages = isInConvo ? convoIsIn(userId, MChessEmojis).messages : (await app.client.conversations.history({
+	const pastMessages = isInConvo ? convoIsIn(userId, MChessEmojis).messages : (await app.client.conversations.history({
 		token: process.env.CEMOJIS_BOT_TOKEN,
 		channel: message.channel,
 		latest: message.ts * 1000,
@@ -152,7 +152,7 @@ app.message('', async ({ message }) => {
 		const rand = userId === lraj23UserId ? 0 : Math.random(); // everything *I* send is magical!
 		if (rand < chances[reaction] * magicFactor) {
 			let unusedIds = new Array(MChessEmojis.powerUps.length).fill(null).map((val, i) => i);
-			for (var i = 0; i < MChessEmojis.powerUps.length; i++) {
+			for (let i = 0; i < MChessEmojis.powerUps.length; i++) {
 				if (MChessEmojis.powerUps.map(power => power.id).includes(i)) unusedIds.splice(unusedIds.indexOf(i), 1);
 				else break;
 			}
@@ -183,7 +183,7 @@ app.message('', async ({ message }) => {
 app.command('/mchessemojis-data-opt-in', async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
-	let userId = interaction.payload.user_id;
+	const userId = interaction.payload.user_id;
 	let MChessEmojis = getMChessEmojis();
 
 	if (MChessEmojis.dataOptedIn.includes(userId))
@@ -197,7 +197,7 @@ app.command('/mchessemojis-data-opt-in', async interaction => {
 app.command('/mchessemojis-game-opt-in', async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
-	let userId = interaction.payload.user_id;
+	const userId = interaction.payload.user_id;
 	let MChessEmojis = getMChessEmojis();
 
 	if (MChessEmojis.gameOptedIn.includes(userId))
@@ -213,7 +213,7 @@ app.command('/mchessemojis-game-opt-in', async interaction => {
 app.command('/mchessemojis-explain-opt-in', async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
-	let userId = interaction.payload.user_id;
+	const userId = interaction.payload.user_id;
 	let MChessEmojis = getMChessEmojis();
 
 	if (MChessEmojis.explanationOptedIn.includes(userId))
@@ -229,7 +229,7 @@ app.command('/mchessemojis-explain-opt-in', async interaction => {
 app.command('/mchessemojis-data-opt-out', async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
-	let userId = interaction.payload.user_id;
+	const userId = interaction.payload.user_id;
 	let MChessEmojis = getMChessEmojis();
 
 	if (MChessEmojis.dataOptedIn.includes(userId)) {
@@ -247,7 +247,7 @@ app.command('/mchessemojis-data-opt-out', async interaction => {
 app.command('/mchessemojis-game-opt-out', async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
-	let userId = interaction.payload.user_id;
+	const userId = interaction.payload.user_id;
 	let MChessEmojis = getMChessEmojis();
 
 	if (MChessEmojis.gameOptedIn.includes(userId)) {
@@ -264,7 +264,7 @@ app.command('/mchessemojis-game-opt-out', async interaction => {
 app.command('/mchessemojis-explain-opt-out', async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
-	let userId = interaction.payload.user_id;
+	const userId = interaction.payload.user_id;
 	let MChessEmojis = getMChessEmojis();
 
 	if (MChessEmojis.explanationOptedIn.includes(userId)) {
@@ -277,179 +277,9 @@ app.command('/mchessemojis-explain-opt-out', async interaction => {
 	await interaction.respond(`You can't opt out because you aren't opted into the Magical Chess Emojis bot's explanations! :${sideEmojis[4]}:`);
 });
 
-app.command('/mchessemojis-start-game', async interaction => {
-	await interaction.ack();
-	let MChessEmojis = getMChessEmojis();
-	let userId = interaction.payload.user_id;
-	return await interaction.respond(`Since this is Magical Chess Emojis and not Competitive Chess Emojis, this feature should not exist. Therefore, you can not access this feature. Eventually the actual features will come out`);
-	if (!MChessEmojis.gameOptedIn.includes(userId))
-		return await interaction.respond(`You aren't opted into the Magical Chess Emojis game! :${mainEmojis[11]}: Opt in first with /mchessemojis-game-opt-in before trying to play!`);
-	if (isInConversation(userId, MChessEmojis))
-		return await interaction.respond(`You can't start a game if you are currently in a game! If you finished your last game already, try running <command that doesn't work yet> and trying again.`);
-	await interaction.client.chat.postEphemeral({
-		"channel": interaction.command.channel_id,
-		"user": userId,
-		"blocks": [
-			{
-				"type": "section",
-				"text": {
-					"type": "mrkdwn",
-					"text": `Choose someone to play against:`
-				},
-				"accessory": {
-					"type": "users_select",
-					"placeholder": {
-						"type": "plain_text",
-						"text": "Default: yourself",
-						"emoji": true
-					},
-					"action_id": "ignore-start-black"
-				},
-			},
-			{
-				"type": "actions",
-				"elements": [
-					{
-						"type": "button",
-						"text": {
-							"type": "plain_text",
-							"text": ":x: Cancel",
-							"emoji": true
-						},
-						"value": "cancel",
-						"action_id": "cancel"
-					},
-					{
-						"type": "button",
-						"text": {
-							"type": "plain_text",
-							"text": ":white_check_mark: Go!",
-							"emoji": true
-						},
-						"value": "confirm",
-						"action_id": "confirm"
-					}
-				]
-			}
-		],
-		"text": `Choose someone to play against:`
-	});
-});
-
 app.action(/^ignore-.+$/, async interaction => await interaction.ack());
 
 app.action('cancel', async interaction => [await interaction.ack(), await interaction.respond({ "delete_original": true })]);
-
-// const getValues = interaction => Object.fromEntries(Object.values(interaction.body.state.values).map(inputInfo => [(key => key[key.length - 1])(Object.entries(inputInfo)[0][0].split("-")), (input => ("selected_option" in input) ? input.selected_option?.value : (input || input))(Object.entries(inputInfo)[0][1])]));
-
-app.action('confirm', async interaction => {
-	await interaction.ack();
-	let MChessEmojis = getMChessEmojis();
-	let whiteId = interaction.body.user.id;
-	let blackId = interaction.body.state.values[Object.keys(interaction.body.state.values)[0]]["ignore-start-black"].selected_user || whiteId;
-
-	if (isInConversation(blackId, MChessEmojis))
-		return await interaction.respond(`You can't start a game if <@${blackId}> is currently in a game! Try asking <@${blackId}> if they are done with their game.`);
-
-	if (!MChessEmojis.gameOptedIn.includes(blackId)) {
-		await interaction.respond(`<@${blackId}> isn't opted into the Magical Chess Emojis game! They need to opt in first with /mchessemojis-game-opt-in before they can play!`);
-		// if (whiteId === lraj23UserId)
-		// await app.client.chat.postEphemeral({
-		// 	channel: blackId,
-		// 	user: blackId,
-		// 	text: `<@${whiteId}> tried to start a Magical Chess Emojis game against you, but you aren't opted in. If you want to play, run /mchessemojis-game-opt-in in <#${lraj23BotTestingId}> and challenge them back. If you don't want to receive this message again, try telling <@${whiteId}> that you don't want to play against them. (I will eventually make a button to opt out of game requests - lraj23, bot developer.)`
-		// });
-		return;
-	}
-
-	MChessEmojis.conversations.push({
-		white: whiteId,
-		black: blackId,
-		channel: interaction.body.channel.id,
-		initiated: Date.now(),
-		messages: []
-	});
-	await interaction.respond(`<@${whiteId}> has started a game against <@${blackId}>. You are playing as White!`);
-	await app.client.chat.postMessage({
-		channel: blackId,
-		text: `<@${whiteId}> has started a Magical Chess Emojis game against you in <#${interaction.body.channel.id}>. Head over there now to talk to them and earn some :siege-coin:! You are playing as Black.`
-	});
-	saveState(MChessEmojis);
-});
-
-app.command('/mchessemojis-resign-game', async interaction => {
-	await interaction.ack();
-	let MChessEmojis = getMChessEmojis();
-	let userId = interaction.payload.user_id;
-
-	return await interaction.respond(`Since this is Magical Chess Emojis and not Competitive Chess Emojis, this feature should not exist. Therefore, you can not access this feature. Eventually the actual features will come out`);
-
-	await interaction.respond(`The resign feature works now! Until October 7, 8:30 PM Eastern Time, you couldn't resign.`);
-
-	if (!isInConversation(userId, MChessEmojis))
-		return await interaction.respond(`You can't resign if you aren't playing one! Try starting a game with /mchessemojis-start-game first!`);
-
-	await interaction.client.chat.postEphemeral({
-		"channel": interaction.command.channel_id,
-		"user": userId,
-		"blocks": [
-			{
-				"type": "section",
-				"text": {
-					"type": "mrkdwn",
-					"text": `Are you SURE you want to resign? :resign-move: You will lose 6-7 :siege-coin:!`
-				}
-			},
-			{
-				"type": "actions",
-				"elements": [
-					{
-						"type": "button",
-						"text": {
-							"type": "plain_text",
-							"text": ":x: No!",
-							"emoji": true
-						},
-						"value": "cancel",
-						"action_id": "cancel"
-					},
-					{
-						"type": "button",
-						"text": {
-							"type": "plain_text",
-							"text": ":resign-move: Yes",
-							"emoji": true
-						},
-						"value": "resign",
-						"action_id": "resign"
-					}
-				]
-			}
-		],
-		"text": `Are you SURE you want to resign? :resign-move: You will lose 6-7 :siege-coin:!`
-	});
-});
-
-app.action('resign', async interaction => {
-	await interaction.ack();
-	let MChessEmojis = getMChessEmojis();
-	let resignId = interaction.body.user.id;
-	let conversation = convoIsIn(resignId, MChessEmojis);
-	let winnerId = conversation.black === resignId ? conversation.white : conversation.black;
-
-	let coinsLost = Math.floor(Math.random() * -2) - 5;
-	MChessEmojis.coins[resignId] += coinsLost;
-	await interaction.respond(`<@${resignId}> has resigned their game against <@${winnerId}>. Your coin balance has changed by ${coinsLost} :siege-coin:`);
-	await app.client.chat.postMessage({
-		channel: winnerId,
-		text: `<@${resignId}> has resigned their Magical Chess Emojis game against you in <#${interaction.body.channel.id}>. They lost ${-coinsLost} :siege-coin: for resigning.`
-	});
-	MChessEmojis.conversations.splice(MChessEmojis.conversations.indexOf(conversation), 1);
-	saveState(MChessEmojis);
-});
-
-app.command('/mchessemojis-leaderboard', async interaction => await interaction.respond(`Since this is Magical Chess Emojis and not Competitive Chess Emojis, this feature should not exist. Therefore, you can not access this feature. Eventually the actual features will come out`));
-// [await interaction.ack(), await interaction.respond(`This is the Magical Chess Emojis game leaderboard! :siege-coin:\n\n` + Object.entries(getMChessEmojis().coins).sort((a, b) => b[1] - a[1]).map(user => `<@${user[0]}> has ${user[1]} :siege-coin:!`).join("\n"))]);
 
 app.command('/mchessemojis-help', async interaction => [await interaction.ack(), await interaction.respond(`This is the Magical Chess Emojis bot! However, this help command can only help you for the Competitive Chess Emojis bot! Here is the help for that bot: The point of this is to earn coins through conversations worth coins against other people. Your coins are based on how each message is rated as a chess move. Since this uses AI to determine how good a message is, you have to opt IN for it to work.\nFor more information, check out the readme at https://github.com/lraj23/competitive-chess-emojis`), interaction.payload.user_id === lraj23UserId ? await interaction.respond(`Test but only for <@${lraj23UserId}>. If you aren't him and you see this message, DM him IMMEDIATELY about this!`) : null]);
 
