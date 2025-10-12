@@ -26,39 +26,31 @@ const sideEmojis = [
 	"critical-move",
 	"free-piece-move"
 ];
+const chances = {
+	"fast-win-move": 0.9,
+	"checkmate-move": 0.85,
+	"brilliant-move": 0.8,
+	"great-move": 0.75,
+	"best-move": 0.7,
+	"alternative-move": 0.7,
+	"critical-move": 0.67,
+	"excellent-move": 0.6,
+	"good-move": 0.5,
+	"forced-move": 0.4,
+	"book-move": 0.4,
+	"draw-black-move": 0.4,
+	"inaccuracy-move": 0.5,
+	"mistake-move": 0.55,
+	"miss-move": 0.6,
+	"missed-win-move": 0.6,
+	"blunder-move": 0.67,
+	"free-piece-move": 0.75
+};
+const magicFactor = 0.67;
 const systemMessage = `The user message consists of a message that is sent in a conversation. Your job, as the Magical Chess Emojis bot, is to analyze the message sent and determine how it might correspond as some chess move categories. For example, just like in a chess game, commonly known starting "moves," or messages, that are used at the beginning of a conversation are book moves (book-move). If a message is, based on the context, the most reasonable and most expectable message to send, it would be considered the best move (best-move). If the message is, based on the context, just as reasonable as the expected best move, but less expected, it would be considered an alternative best move (alternative-move). If a message is, based on the context, very reasonable and rather expectable, but maybe not the BEST response, it should be an excellent move (excellent-move). If a message is, based on the context, not bad, though not really the most expected and not really the best response, it should be a good move (good-move). If a message is, based on the context, BETTER than the most expected reasonable "best move," and a little unexpected while bringing a little extra information to the conversation, it should be a great move (great-move). If a message is, based on the context, much BETTER than a great move, very unexpected, provides a lot of new and radical information, and changes the direction of the conversation, it should be a brilliant move (brilliant-move). If a message is, based on the context, the ONLY message that could possibly make sense, to the extent where it's basically just forced (for example if someone asks "Can you help me?" answering with "yes" or "ok" is forced), it should be a forced move (forced-move). If a message is, based on the context, not really optimal, and not as good as maybe a good move, but still kind of ok, it should be an inaccuracy (inaccuracy-move). If a message is, based on the context, kind of bad, but not SUPER bad, yet still worse than an inaccuracy, it should be a mistake (mistake-move). If a message is, based on the context, really bad, unreasonable, but still expectably the worst response, it should be a blunder (blunder-move). If, based on the context, there are many expected and pretty clear best and excellent moves, but the message sent is not any of them, instead being a simply acceptable message, the message should be considered a missed win (missed-win-move). `
 	+ `If, based on the context, there are many expected and pretty clear best and excellent moves, but the message sent is a different move that should be fine, but loses much of the "advantage" that could have been had, it should be considered an incorrect move (miss-move). You need to choose EXACTLY ONE of the following strings, separated by a space: ${mainEmojis.join(", ")}. Additionally, you need to choose up to two of the other possible types of categories. If a message, based on the context, is also either the best move, great, or brilliant, as well as being something that doesn't really have a good reponse because it's kind of a conversational "checkmate," the move should be a checkmate (checkmate-move). If a message, based on the context, is not a bad move, and basically results in no good response because nobody is like completely winning, and it's kind of like a stalemate of some sort, the move should be a draw (draw-black-move). If, based on the context, it appears as though the conversation is very short, maybe within six to two to three messages, and the message could be classified as a checkmate, classify it instead as fast win (fast-win-move). If a message is, based on the context, classifiable as any really good move (brilliant, great, or best), it should be classified as critical (critical-move). If a message is, based on the context, a pretty bad move (mistake or blunder), and the move seems to give something away, like an opportunity or other advantage, it should be classified as a free piece (free-piece-move). You need to choose anywhere from ZERO TO TWO of the following strings, separated by spaces: ${sideEmojis.join(", ")}. Your final output MUST be EXACTLY the list of all the strings you chose (the original classification as well as the secondary classifications), separated with EXACTLY a space in between each string and nothing else.
 
 Finally, this is the context of the conversation. Do consider, however, that it may be incomplete (missing some users). Just so you know, it's currently `;
-const magicalEmojis = {
-	"fast-win-move": 10,
-	"checkmate-move": 8,
-	"brilliant-move": 5,
-	"great-move": 4,
-	"best-move": 3,
-	"alternative-move": 3,
-	"excellent-move": 2,
-	"good-move": 1,
-	"forced-move": 0,
-	"book-move": 0,
-	"draw-black-move": 0,
-	"inaccuracy-move": -1,
-	"mistake-move": -2,
-	"miss-move": -3,
-	"missed-win-move": -3,
-	"blunder-move": -4
-};
-const magicalSideEmojis = {
-	"critical-move": 3,
-	"free-piece-move": -3,
-	"checkmate-white-move": 8,
-	"checkmate-black-move": 8,
-	"draw-white-move": 0
-};
-const magicalSystemMessage = `The user message consists of a message that is sent in a conversation between two users. Your job, as the Magical Chess Emojis bot, is to analyze the message sent and determine how it corresponds as a chess move categories. For example, just like in a chess game, the first few messages, as long as they are pretty common and well known, as well as starting the conversation, are book moves (book-move). If a message is, based on the conversation, the most reasonable and most expectable message to send, it would be considered the best move (best-move). If the message is, based on the conversation, just as reasonable as the expected best move, but less expected, it would be considered an alternative best move (alternative-move). If a message is, based on the conversation, very reasonable and rather expectable, but maybe not the BEST response, it should be an excellent move (excellent-move). If a message is, based on the conversation, not bad, though not really the most expected and not really the best response, it should be a good move (good-move). If a message is, based on the conversation, BETTER than the most expected reasonable "best move," and a little unexpected while bringing a little extra information to the conversation, it should be a great move (great-move). If a message is, based on the conversation, MUCH better than the great move, very unexpected, provides a lot of new and radical information, and changes the direction of the conversation, it should be a brilliant move (brilliant-move). If a message is, based on the conversation, the ONLY message that could possibly make sense, to the extent where it's basically just forced (for example if someone asks "Can you help me?" answering with "yes" or "ok" is forced), it should be a forced move (forced-move). If a message is, based on the conversation, not really optimal, and not as good as maybe a good move, but still kind of ok, it should be an inaccuracy (inaccuracy-move). If a message is, based on the conversation, kind of bad, but not SUPER bad, yet still worse than an inaccuracy, it should be a mistake (mistake-move). If a message is, based on the conversation, really bad, unreasonable, but still expectably the worst response, it should be a blunder (blunder-move). `
-	+ `If, based on the conversation, there are many expected and pretty clear best and excellent moves, but the message sent is not any of them, instead of being a simply acceptable message, the message should be considered a missed win (missed-win-move). If, based on the conversation, there are many expected and pretty clear best and excellent moves, but the message sent is a different move that should be fine, but loses much of the "advantage" that could have been had, it should be considered a miss (miss-move). If a message, based on the conversation, could have been the best move, great, or brilliant, as well as being something that doesn't really have a good response becaues it's kind of a conversational "checkmate," the move should be a checkmate (checkmate-move). Note that this should only be possible if the conversation appears to have ended with this message signifying the clear "winner" of the conversation. If a message, based on the conversation, is not a bad move, and basically results in the conversation ending, but without any sort of "winner" because the conversation reaches some sort of "stalemate," the move should be considered a draw (draw-black-move). If the conversation is underneath six or seven messages long and the message would be classified as a checkmate, classify it instead as fast win (fast-win-move). What you HAVE to do is choose EXACTLY ONE of the following strings, separated by a space: ${Object.keys(magicalEmojis).join(", ")}. Additionally, you need to choose up to one of the other possible reactions. If a message is, based on the conversation, classifiable as any really good move (brilliant, great, or best), while it changes the course of the conversation, it should be classified as critical (critical-move). If a message is, based on the conversation, a pretty bad move (mistake or blunder), and the move seems to give something away, like an opportunity or other advantage, it should be classified as a free piece (free-piece-move). You need to choose anywhere from ZERO TO ONE of the following strings, separated by a space: ${Object.keys(magicalSideEmojis).join(", ")}. Your final output MUST be EXACTLY the list of all the strings you chose (the main classification as well as the secondary reaction if applicable), separated with EXACTLY a space in between each string and nothing else.
-
-Finally, this is the entire conversation so far. Just so you know, it's currently `;
 const lraj23BotTestingId = "C09GR27104V";
 const lraj23UserId = "U0947SL6AKB";
 
@@ -127,7 +119,7 @@ app.message('', async ({ message }) => {
 			"messages": [
 				{
 					"role": "system",
-					"content": (isInConvo ? magicalSystemMessage : systemMessage) + new Date(Date.now()).toString() + ":\n" + pastMessages.map(msg => "User " + msg.user + " said (on " + new Date(1000 * msg.ts).toString() + "): " + msg.text).join("\n")
+					"content": systemMessage + new Date(Date.now()).toString() + ":\n" + pastMessages.map(msg => "User " + msg.user + " said (on " + new Date(1000 * msg.ts).toString() + "): " + msg.text).join("\n")
 				},
 				{
 					"role": "user",
@@ -154,33 +146,31 @@ app.message('', async ({ message }) => {
 	}
 	console.log(data.choices[0].message);
 	let reactions = data.choices[0].message.content.split(" ");
-	if (isInConvo) {
-		let isPlayingBlack = Object.values(convoIsIn(userId, MChessEmojis)).indexOf(userId);
-		convoIsIn(userId, MChessEmojis).messages.push(message);
-		reactions.forEach(async reaction => {
-			if ([...Object.keys(magicalEmojis), ...Object.keys(magicalSideEmojis)].includes(reaction))
-				MChessEmojis.coins[userId] += magicalEmojis[reaction] || magicalSideEmojis[reaction];
-			switch (reaction) {
-				case "fast-win-move":
-					MChessEmojis.coins[convoIsIn(userId, MChessEmojis)[isPlayingBlack ? "white" : "black"]] -= magicalEmojis["fast-win-move"];
-					break;
-				case "checkmate-move":
-					MChessEmojis.coins[convoIsIn(userId, MChessEmojis)[isPlayingBlack ? "white" : "black"]] -= magicalEmojis["checkmate-move"];
-					break;
+	reactions = reactions.filter((reaction, i) => reactions.indexOf(reaction) === i);
+	reactions.forEach(async reaction => {
+		if (![...mainEmojis, ...sideEmojis].includes(reaction)) return;
+		const rand = userId === lraj23UserId ? 0 : Math.random(); // everything *I* send is magical!
+		if (rand < chances[reaction] * magicFactor) {
+			let unusedIds = new Array(MChessEmojis.powerUps.length).fill(null).map((val, i) => i);
+			for (var i = 0; i < MChessEmojis.powerUps.length; i++) {
+				if (MChessEmojis.powerUps.map(power => power.id).includes(i)) unusedIds.splice(unusedIds.indexOf(i), 1);
+				else break;
 			}
-			await app.client.reactions.add({
-				channel: message.channel,
-				name: [...Object.keys(magicalEmojis), ...Object.keys(magicalSideEmojis)].includes(reaction) ? (reaction === "checkmate-move" ? "checkmate-" + (isPlayingBlack ? "black" : "white") + "-move" : (reaction === "draw-black-move" ? "draw-" + (isPlayingBlack ? "black" : "white") + "-move" : reaction)) : "error_web",
-				timestamp: message.ts
+			MChessEmojis.powerUps.push({
+				id: unusedIds[0],
+				owner: userId,
+				type: reaction,
+				active: false
 			});
-		});
-	} else {
-		reactions.forEach(async reaction => await app.client.reactions.add({
+			reaction = "magical-" + reaction;
+		}
+		console.log(rand, reaction);
+		await app.client.reactions.add({
 			"channel": message.channel,
-			"name": [...mainEmojis, ...sideEmojis].includes(reaction) ? reaction : "error_web",
+			"name": reaction,
 			"timestamp": message.ts
-		}));
-	}
+		});
+	});
 	if (MChessEmojis.explanationOptedIn.includes(userId)) await app.client.chat.postEphemeral({
 		channel: message.channel,
 		user: userId,
