@@ -180,6 +180,11 @@ app.message('', async ({ message }) => {
 	saveState(MChessEmojis);
 });
 
+app.command('/mchessemojis-edit-opts', async interaction => {
+	await interaction.ack();
+	await interaction.respond(`This is still under development! :magical-${mainEmojis[11]}: Use /mchessemojis-data-opt-in, /mchessemojis-data-opt-out, /mchessemojis-game-opt-in, /mchessemojis-game-opt-out, /mchessemojis-explain-opt-in, and /mchessemojis-explain-opt-out for now!`);
+});
+
 app.command('/mchessemojis-data-opt-in', async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
@@ -277,9 +282,99 @@ app.command('/mchessemojis-explain-opt-out', async interaction => {
 	await interaction.respond(`You can't opt out because you aren't opted into the Magical Chess Emojis bot's explanations! :${sideEmojis[4]}:`);
 });
 
+app.command('/mchessemojis-use-magic', async interaction => {
+	await interaction.ack();
+	const MChessEmojis = getMChessEmojis();
+	const userId = interaction.payload.user_id;
+	if (userId !== lraj23UserId)
+		return await interaction.respond(`This is still under development! :magical-${mainEmojis[11]}: Ping <@${lraj23UserId}> to ask him what powerups you have!`);
+	if (!MChessEmojis.gameOptedIn.includes(userId))
+		return await interaction.respond(`You aren't opted into the Magical Chess Emojis game! :${mainEmojis[11]}: Opt in first with /mchessemojis-game-opt-in before trying to use your magic! (You may have magic, you just HAVE to be opted in to use it)`);
+	const powerUps = MChessEmojis.powerUps.filter(powerUp => powerUp.owner === userId);
+	await interaction.client.chat.postEphemeral({
+		"channel": interaction.command.channel_id,
+		"user": userId,
+		"blocks": [
+			{
+				"type": "section",
+				"text": {
+					"type": "mrkdwn",
+					"text": `Choose which type of power up to use:`
+				},
+				"accessory": {
+					"type": "static_select",
+					"placeholder": {
+						"type": "plain_text",
+						"text": "Required",
+						"emoji": true
+					},
+					"options": powerUps.filter((powerUp, i, self) => i === self.findIndex((o) => o.type === powerUp.type)).map(powerUp => ({
+						"text": {
+							"type": "plain_text",
+							"text": powerUp.type.split("-").join(" "),
+							"emoji": true
+						},
+						"value": powerUp.type
+					})),
+					"action_id": "ignore-power-up-type"
+				}
+			},
+			{
+				"type": "actions",
+				"elements": [
+					{
+						"type": "button",
+						"text": {
+							"type": "plain_text",
+							"text": ":x: Cancel",
+							"emoji": true
+						},
+						"value": "cancel",
+						"action_id": "cancel"
+					},
+					{
+						"type": "button",
+						"text": {
+							"type": "plain_text",
+							"text": ":white_check_mark: Go!",
+							"emoji": true
+						},
+						"value": "confirm",
+						"action_id": "confirm"
+					}
+				]
+			}
+		],
+		"text": `Choose someone to play against:`
+	});
+});
+
 app.action(/^ignore-.+$/, async interaction => await interaction.ack());
 
 app.action('cancel', async interaction => [await interaction.ack(), await interaction.respond({ "delete_original": true })]);
+
+app.action('confirm', async interaction => {
+	await interaction.ack();
+	let MChessEmojis = getMChessEmojis();
+	const userId = interaction.body.user.id;
+	console.log(interaction.body.state.values);
+	let powerUp = interaction.body.state.values[Object.keys(interaction.body.state.values)[0]]["ignore-power-up-type"].selected_option || null;
+	const powerUps = MChessEmojis.powerUps.filter(powerUp => powerUp.owner === userId);
+
+	if (powerUp === null)
+		return await interaction.respond(`You have to select a power up type!`);
+	powerUp = powerUp.value;
+
+	if (!powerUps.map(powerUp => powerUp.type).includes(powerUp))
+		return await interaction.respond(`<@${userId}> no longer has a power up of type ${powerUp}! Stop trying to fraud please /j`);
+
+	if (powerUps.map(powerUp => powerUp.active).includes(true))
+		return await interaction.respond(`<@${userId}> can only have one active power up at a time! :magical-${mainEmojis[6]}: Send a message (not possible right now; ping <@${lraj23UserId}> to manually deactivate your active power up) to use your power up!`);
+
+	MChessEmojis.powerUps.filter(powerUp => powerUp.owner === userId).filter(pwrUp => pwrUp.type === powerUp)[0].active = true;
+	await interaction.respond(`<@${userId}> has used a power up of type ${powerUp}!`);
+	saveState(MChessEmojis);
+});
 
 app.command('/mchessemojis-help', async interaction => [await interaction.ack(), await interaction.respond(`This is the Magical Chess Emojis bot! However, this help command can only help you for the Competitive Chess Emojis bot! Here is the help for that bot: The point of this is to earn coins through conversations worth coins against other people. Your coins are based on how each message is rated as a chess move. Since this uses AI to determine how good a message is, you have to opt IN for it to work.\nFor more information, check out the readme at https://github.com/lraj23/competitive-chess-emojis`), interaction.payload.user_id === lraj23UserId ? await interaction.respond(`Test but only for <@${lraj23UserId}>. If you aren't him and you see this message, DM him IMMEDIATELY about this!`) : null]);
 
