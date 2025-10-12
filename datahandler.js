@@ -44,13 +44,14 @@ function log(message) {
 }
 
 async function logInteraction(interaction) {
-	const user = `<@${interaction.payload.user_id || interaction.body.user.id || "<no id>"}|${interaction.payload.user_name || interaction.body.user.name || "<no name>"}>`;
+	const user = "<@" + interaction.payload.user_id || interaction.body.user.id || "<no id>" + "|" + interaction.payload.user_name || interaction.body.user.name || "<no name>"
+		+ "> ";
 	const channel = interaction.payload.channel_name || interaction.body.channel.name || "<no channel>";
 
 	if (interaction.command) {
-		log(`[${channel}] ${user} ran command ${interaction.command.command}`);
+		log("[" + channel + "] " + user + " ran command " + interaction.command.command + " ");
 	} else {
-		log(`Unknown interaction logged: ${JSON.stringify(interaction, null, "\t")}`);
+		log("Unknown interaction logged: " + JSON.stringify(interaction, null, "\t") + " ");
 	}
 }
 
@@ -76,7 +77,7 @@ function pad0(string, length) {
 
 // cloneObj function taken from https://stackoverflow.com/a/7574273
 function cloneObj(obj) {
-	if (obj == null || typeof (obj) != 'object') {
+	if (obj == null || typeof (obj) != "object") {
 		return obj;
 	}
 
