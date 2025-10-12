@@ -182,7 +182,117 @@ app.message('', async ({ message }) => {
 
 app.command('/mchessemojis-edit-opts', async interaction => {
 	await interaction.ack();
-	await interaction.respond(`This is still under development! :magical-${mainEmojis[11]}: Use /mchessemojis-data-opt-in, /mchessemojis-data-opt-out, /mchessemojis-game-opt-in, /mchessemojis-game-opt-out, /mchessemojis-explain-opt-in, and /mchessemojis-explain-opt-out for now!`);
+	const userId = interaction.payload.user_id;
+	let MChessEmojis = getMChessEmojis();
+	const optInLevels = Object.entries({
+		"none": `Nothing :magical-${mainEmojis[9]}:`,
+		"data": `Only data :magical-${mainEmojis[4]}:`,
+		"game": `Data + reactions :magical-${sideEmojis[3]}:`,
+		"explain": `EVERYTHING! :magical-${mainEmojis[1]}:`
+	});
+	const currentOpted = (MChessEmojis.explanationOptedIn.includes(userId) ? "explain" : (MChessEmojis.gameOptedIn.includes(userId) ? "game" : (MChessEmojis.dataOptedIn.includes(userId) ? "data" : "none")));
+	await interaction.client.chat.postEphemeral({
+		"channel": interaction.command.channel_id,
+		"user": userId,
+		"text": `Choose which type of opt-in you want to have:`,
+		"blocks": [
+			{
+				"type": "section",
+				"text": {
+					"type": "mrkdwn",
+					"text": "Choose which type of opt-in you want to have:"
+				},
+				"accessory": {
+					"type": "static_select",
+					"placeholder": {
+						"type": "plain_text",
+						"text": "Required",
+						"emoji": true
+					},
+					"options": optInLevels.map(level => ({
+						"text": {
+							"type": "plain_text",
+							"text": level[1],
+							"emoji": true
+						},
+						"value": level[0]
+					})),
+					"initial_option": {
+						"text": {
+							"type": "plain_text",
+							"text": Object.fromEntries(optInLevels)[currentOpted],
+							"emoji": true
+						},
+						"value": currentOpted
+					},
+					"action_id": "ignore-opt-in-level"
+				}
+			},
+			{
+				"type": "actions",
+				"elements": [
+					{
+						"type": "button",
+						"text": {
+							"type": "plain_text",
+							"text": ":x: Cancel",
+							"emoji": true
+						},
+						"value": "cancel",
+						"action_id": "cancel"
+					},
+					{
+						"type": "button",
+						"text": {
+							"type": "plain_text",
+							"text": ":white_check_mark: Go!",
+							"emoji": true
+						},
+						"value": "confirm",
+						"action_id": "confirm-opt-change"
+					}
+				]
+			}
+		]
+	});
+});
+
+app.action('confirm-opt-change', async interaction => {
+	await interaction.ack();
+	let MChessEmojis = getMChessEmojis();
+	const userId = interaction.body.user.id;
+	console.log(interaction.body.state.values);
+	let optInLevel = (interaction.body.state.values[Object.keys(interaction.body.state.values)[0]]["ignore-opt-in-level"].selected_option || { value: "none" }).value;
+	console.log(optInLevel);
+
+	switch (optInLevel) {
+		case "none":
+			await interaction.respond(`<@${userId}> set their opts to nothing. :magical-${mainEmojis[9]}: The bot will no longer interact with you whatsoever.`);
+			if (MChessEmojis.dataOptedIn.includes(userId)) MChessEmojis.dataOptedIn.splice(MChessEmojis.dataOptedIn.indexOf(userId), 1);
+			if (MChessEmojis.gameOptedIn.includes(userId)) MChessEmojis.gameOptedIn.splice(MChessEmojis.gameOptedIn.indexOf(userId), 1);
+			if (MChessEmojis.explanationOptedIn.includes(userId)) MChessEmojis.explanationOptedIn.splice(MChessEmojis.explanationOptedIn.indexOf(userId), 1);
+			break;
+		case "data":
+			await interaction.respond(`<@${userId}> set their opts to just data. :magical-${mainEmojis[4]}: The bot will read your messages, so your messages will be sent to an AI. This is to improve reactions given to other users. The bot will not interact with you otherwise.`);
+			if (!MChessEmojis.dataOptedIn.includes(userId)) MChessEmojis.dataOptedIn.push(userId);
+			if (MChessEmojis.gameOptedIn.includes(userId)) MChessEmojis.gameOptedIn.splice(MChessEmojis.gameOptedIn.indexOf(userId), 1);
+			if (MChessEmojis.explanationOptedIn.includes(userId)) MChessEmojis.explanationOptedIn.splice(MChessEmojis.explanationOptedIn.indexOf(userId), 1);
+			break;
+		case "game":
+			await interaction.respond(`<@${userId}> set their opts to data and reactions. :magical-${sideEmojis[3]}: The bot will read your messages, so your messages will be sent to an AI. Using your messages as well as those of others opted in to data or reactions, the bot will react to all of your messages sent ANYWHERE as long as the bot is in the channel and the bot has been channel opted in. The bot will not send you messages or interact otherwise.`);
+			if (!MChessEmojis.dataOptedIn.includes(userId)) MChessEmojis.dataOptedIn.push(userId);
+			if (!MChessEmojis.gameOptedIn.includes(userId)) MChessEmojis.gameOptedIn.push(userId);
+			if (MChessEmojis.explanationOptedIn.includes(userId)) MChessEmojis.explanationOptedIn.splice(MChessEmojis.explanationOptedIn.indexOf(userId), 1);
+			break;
+		case "explain":
+			await interaction.respond(`<@${userId}> set their opts to everything. :magical-${mainEmojis[1]}: The bot will read your messages, so your messages will be sent to an AI. Using your messages as well as those of others opted in to data or reactions, the bot will react to all of your messages sent ANYWHERE as long as the bot is in the channel and the bot has been channel opted in. Along with reacting, the bot will also send you a visible-only-to-you message to ALL your messages with the AI's thought process on its choices.`);
+			if (!MChessEmojis.dataOptedIn.includes(userId)) MChessEmojis.dataOptedIn.push(userId);
+			if (!MChessEmojis.gameOptedIn.includes(userId)) MChessEmojis.gameOptedIn.push(userId);
+			if (!MChessEmojis.explanationOptedIn.includes(userId)) MChessEmojis.explanationOptedIn.push(userId);
+			break;
+	}
+
+	saveState(MChessEmojis);
 });
 
 app.command('/mchessemojis-data-opt-in', async interaction => {
