@@ -54,13 +54,13 @@ const lraj23BotTestingId = "C09GR27104V";
 const lraj23UserId = "U0947SL6AKB";
 
 const isInConversation = (userId, MChessEmojis) => !MChessEmojis.conversations.map(convo => [convo.white, convo.black]).flat().reduce((product, id) => product * (+!(id === userId)), 1);
+const activePowerUps = MChessEmojis => MChessEmojis.powerUps.filter(powerUp => powerUp.active);
 const convoIsIn = (userId, MChessEmojis) => MChessEmojis.conversations.find(convo => [convo.white, convo.black].includes(userId));
 
 app.message("", async ({ message }) => {
 	let MChessEmojis = getMChessEmojis();
 	if (!Object.keys(MChessEmojis.whiteListedChannels).includes(message.channel)) return;
 	const userId = message.user;
-	const isInConvo = isInConversation(userId, MChessEmojis) && convoIsIn(userId, MChessEmojis).channel === message.channel;
 	if (!MChessEmojis.gameOptedIn.includes(userId)) {
 		if (message.channel === lraj23BotTestingId) await app.client.chat.postEphemeral({
 			channel: lraj23BotTestingId,
@@ -79,14 +79,21 @@ app.message("", async ({ message }) => {
 		});
 		return;
 	}
-	if (message.text.toLowerCase().includes("secret button") && !isInConvo) {
+	if (activePowerUps(MChessEmojis).map(powerUp => powerUp.type).includes("critical-move")) {
 		await app.client.reactions.add({
+			channel: message.channel,
+			name: "magical-i-will-bury-you-alive-in-a-dark-alley-and-let-the-rats-feast-upon-your-corpse",
+			timestamp: message.ts
+		});
+		MChessEmojis.powerUps.splice(MChessEmojis.powerUps.indexOf(MChessEmojis.powerUps.find(powerUp => (powerUp.type === "critical-move" && powerUp.active))), 1);
+		return saveState(MChessEmojis);
+	}
+	if (message.text.toLowerCase().includes("secret button"))
+		return await app.client.reactions.add({
 			channel: message.channel,
 			name: mainEmojis[0],
 			timestamp: message.ts
 		});
-		return;
-	}
 	if (message.ts - MChessEmojis.apiRequests[userId] < 1) {
 		await app.client.reactions.add({
 			channel: message.channel,
@@ -103,7 +110,7 @@ app.message("", async ({ message }) => {
 		return;
 	} else MChessEmojis.apiRequests[userId] = message.ts;
 	saveState(MChessEmojis);
-	const pastMessages = isInConvo ? convoIsIn(userId, MChessEmojis).messages : (await app.client.conversations.history({
+	const pastMessages = (await app.client.conversations.history({
 		token: process.env.CEMOJIS_BOT_TOKEN,
 		channel: message.channel,
 		latest: message.ts * 1000,

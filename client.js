@@ -16,6 +16,6 @@ const app = new App({
 console.log(isSocketMode ? "Starting in Socket Mode!" : "Starting in Request URL Mode!");
 
 await app.start(process.env.CEMOJIS_PORT || 5040);
-console.log("⚡ Slack bot ready in " + Date.now() - startTime + "ms.");
+console.log("⚡ Slack bot ready in " + (Date.now() - startTime) + "ms.");
 
 export default app;
