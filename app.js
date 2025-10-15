@@ -52,10 +52,9 @@ const systemMessage = "The user message consists of a message that is sent in a 
 	+ mainEmojis.join(", ") + ". Additionally, you need to choose up to two of the other possible types of categories. If a message, based on the context, is also either the best move, great, or brilliant, as well as being something that doesn't really have a good reponse because it's kind of a conversational \"checkmate,\" the move should be a checkmate (checkmate-move). If a message, based on the context, is not a bad move, and basically results in no good response because nobody is like completely winning, and it's kind of like a stalemate of some sort, the move should be a draw (draw-black-move). If, based on the context, it appears as though the conversation is very short, maybe within six to two to three messages, and the message could be classified as a checkmate, classify it instead as fast win (fast-win-move). If a message is, based on the context, classifiable as any really good move (brilliant, great, or best), it should be classified as critical (critical-move). If a message is, based on the context, a pretty bad move (mistake or blunder), and the move seems to give something away, like an opportunity or other advantage, it should be classified as a free piece (free-piece-move). You need to choose anywhere from ZERO TO TWO of the following strings, separated by spaces: " + sideEmojis.join(", ") + ". Your final output MUST be EXACTLY the list of all the strings you chose (the original classification as well as the secondary classifications), separated with EXACTLY a space in between each string and nothing else.\n\nFinally, this is the context of the conversation. Do consider, however, that it may be incomplete (missing some users). Just so you know, it's currently ";
 const lraj23BotTestingId = "C09GR27104V";
 const lraj23UserId = "U0947SL6AKB";
+const iWillBuryYouAliveInADarkAlleyAndLetTheRatsFeastUponYourCorpse = "i-will-bury-you-alive-in-a-dark-alley-and-let-the-rats-feast-upon-your-corpse";
 
-const isInConversation = (userId, MChessEmojis) => !MChessEmojis.conversations.map(convo => [convo.white, convo.black]).flat().reduce((product, id) => product * (+!(id === userId)), 1);
 const activePowerUps = MChessEmojis => MChessEmojis.powerUps.filter(powerUp => powerUp.active);
-const convoIsIn = (userId, MChessEmojis) => MChessEmojis.conversations.find(convo => [convo.white, convo.black].includes(userId));
 
 app.message("", async ({ message }) => {
 	let MChessEmojis = getMChessEmojis();
@@ -97,7 +96,7 @@ app.message("", async ({ message }) => {
 	if (activePowerUpsTypes(MChessEmojis).includes("critical-move")) {
 		await app.client.reactions.add({
 			channel: message.channel,
-			name: "magical-i-will-bury-you-alive-in-a-dark-alley-and-let-the-rats-feast-upon-your-corpse",
+			name: "magical-" + iWillBuryYouAliveInADarkAlleyAndLetTheRatsFeastUponYourCorpse,
 			timestamp: message.ts
 		});
 		MChessEmojis.powerUps.splice(MChessEmojis.powerUps.indexOf(MChessEmojis.powerUps.find(powerUp => (powerUp.type === "critical-move" && powerUp.active))), 1);
@@ -405,7 +404,7 @@ app.action("confirm", async interaction => {
 	saveState(MChessEmojis);
 });
 
-app.command("/mchessemojis-help", async interaction => [await interaction.ack(), await interaction.respond("This is the Magical Chess Emojis bot! The point of this is to earn (and use) magical power ups. You get these by sending messages more often while opted in, and eventually getting a magical reaction. These magical reactions give you power ups which can be used for interesting but useless (for example :magical-i-will-bury-you-alive-in-a-dark-alley-and-let-the-rats-feast-upon-your-corpse:). Since this uses AI to determine how good a message is, you have to opt IN for it to work. The bot must also be in the channel you are sending messages in, and the channel creator must have opted the channel in to this bot.\nFor more information, check out the readme at https://github.com/lraj23/magical-chess-emojis"), interaction.payload.user_id === lraj23UserId ? await interaction.respond("Test but only for <@" + lraj23UserId + ">. If you aren't him and you see this message, DM him IMMEDIATELY about this!") : null]);
+app.command("/mchessemojis-help", async interaction => [await interaction.ack(), await interaction.respond("This is the Magical Chess Emojis bot! The point of this is to earn (and use) magical power ups. You get these by sending messages more often while opted in, and eventually getting a magical reaction. These magical reactions give you power ups which can be used for interesting but useless (for example :magical-" + iWillBuryYouAliveInADarkAlleyAndLetTheRatsFeastUponYourCorpse + ":). Since this uses AI to determine how good a message is, you have to opt IN for it to work. The bot must also be in the channel you are sending messages in, and the channel creator must have opted the channel in to this bot.\nFor more information, check out the readme at https://github.com/lraj23/magical-chess-emojis"), interaction.payload.user_id === lraj23UserId ? await interaction.respond("Test but only for <@" + lraj23UserId + ">. If you aren't him and you see this message, DM him IMMEDIATELY about this!") : null]);
 
 app.command("/mchessemojis-channel-opt-in", async interaction => {
 	await interaction.ack();
