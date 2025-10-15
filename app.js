@@ -61,6 +61,7 @@ app.message("", async ({ message }) => {
 	let MChessEmojis = getMChessEmojis();
 	if (!Object.keys(MChessEmojis.whiteListedChannels).includes(message.channel)) return;
 	const userId = message.user;
+	let activePowerUpsTypes = MChessEmojis => activePowerUps(MChessEmojis).map(powerUp => powerUp.type);
 	if (!MChessEmojis.gameOptedIn.includes(userId)) {
 		if (message.channel === lraj23BotTestingId) await app.client.chat.postEphemeral({
 			channel: lraj23BotTestingId,
@@ -70,16 +71,30 @@ app.message("", async ({ message }) => {
 					type: "section",
 					text: {
 						type: "mrkdwn",
-						text: "You aren't opted in to Magical Chess Emojis! Opt in with /mchessemojis-game-opt-in"
+						text: "You aren't opted in to Magical Chess Emojis! Opt in to \"Data + reactions\" with /mchessemojis-edit-opts"
 					}
 				}
 			],
-			text: "You aren't opted in to Magical Chess Emojis! Opt in with /mchessemojis-game-opt-in",
+			text: "You aren't opted in to Magical Chess Emojis! Opt in to \"Data + reactions\" with /mchessemojis-edit-opts",
 			thread_ts: ((message.thread_ts == message.ts) ? undefined : message.thread_ts)
 		});
 		return;
 	}
-	if (activePowerUps(MChessEmojis).map(powerUp => powerUp.type).includes("critical-move")) {
+	if (activePowerUpsTypes(MChessEmojis).includes("fast-win-move")) {
+		let fastWin = MChessEmojis.powerUps.find(powerUp => (powerUp.type === "fast-win-move" && powerUp.active));
+		if (!userId === fastWin.owner) {
+			await app.client.reactions.add({
+				channel: message.channel,
+				name: "magical-somebody-won-quickly-and-you-spoke-too-soon",
+				timestamp: message.ts
+			});
+			if (fastWin.active === true) fastWin.active = 4;
+			else fastWin.active--;
+			if (fastWin.active === 0) MChessEmojis.powerUps.splice(MChessEmojis.powerUps.indexOf(fastWin), 1);
+			return saveState(MChessEmojis);
+		}
+	}
+	if (activePowerUpsTypes(MChessEmojis).includes("critical-move")) {
 		await app.client.reactions.add({
 			channel: message.channel,
 			name: "magical-i-will-bury-you-alive-in-a-dark-alley-and-let-the-rats-feast-upon-your-corpse",
@@ -155,7 +170,7 @@ app.message("", async ({ message }) => {
 	reactions = reactions.filter((reaction, i) => reactions.indexOf(reaction) === i);
 	reactions.forEach(async reaction => {
 		if (![...mainEmojis, ...sideEmojis].includes(reaction)) return;
-		const rand = userId === lraj23UserId ? 0 : Math.random(); // everything *I* send is magical!
+		const rand = Math.random();
 		if (rand < chances[reaction] * magicFactor) {
 			let unusedIds = new Array(MChessEmojis.powerUps.length).fill(null).map((val, i) => i);
 			for (let i = 0; i < MChessEmojis.powerUps.length; i++) {
@@ -305,10 +320,8 @@ app.command("/mchessemojis-use-magic", async interaction => {
 	await interaction.ack();
 	const MChessEmojis = getMChessEmojis();
 	const userId = interaction.payload.user_id;
-	if (userId !== lraj23UserId)
-		return await interaction.respond("This is still under development! :magical-" + mainEmojis[11] + ": Ping <@" + lraj23UserId + "> to ask him what powerups you have!");
 	if (!MChessEmojis.gameOptedIn.includes(userId))
-		return await interaction.respond("You aren't opted into the Magical Chess Emojis game! :" + mainEmojis[11] + ": Opt in first with /mchessemojis-game-opt-in before trying to use your magic! (You may have magic, you just HAVE to be opted in to use it)");
+		return await interaction.respond("You aren't opted into the Magical Chess Emojis game! :" + mainEmojis[11] + ": Opt in to \"Data + reactions\" first with /mchessemojis-edit-opts before trying to use your magic! (You may have magic, you just HAVE to be opted in to use it)");
 	const powerUps = MChessEmojis.powerUps.filter(powerUp => powerUp.owner === userId);
 	await interaction.client.chat.postEphemeral({
 		channel: interaction.command.channel_id,
@@ -387,10 +400,7 @@ app.action("confirm", async interaction => {
 	if (!powerUps.map(powerUp => powerUp.type).includes(powerUp))
 		return await interaction.respond("<@" + userId + "> no longer has a power up of type " + powerUp + "! Stop trying to fraud please /j");
 
-	if (powerUps.map(powerUp => powerUp.active).includes(true))
-		return await interaction.respond("<@" + userId + "> can only have one active power up at a time! :magical-" + mainEmojis[6] + ": Send a message (not possible right now; ping <@" + lraj23UserId + "> to manually deactivate your active power up) to use your power up!");
-
-	MChessEmojis.powerUps.filter(powerUp => powerUp.owner === userId).filter(pwrUp => pwrUp.type === powerUp)[0].active = true;
+	MChessEmojis.powerUps.filter(powerUp => powerUp.owner === userId).filter(pwrUp => (pwrUp.type === powerUp && !pwrUp.active))[0].active = true;
 	await interaction.respond("<@" + userId + "> has used a power up of type " + powerUp + "!");
 	saveState(MChessEmojis);
 });
@@ -407,7 +417,7 @@ app.command("/mchessemojis-channel-opt-in", async interaction => {
 		include_full_members: true
 	});
 	console.log(channelInfo.channel.creator);
-	if (!(channelInfo.channel.creator === userId)) return await interaction.respond("You aren't the channel creator, so you can not opt this bot in or out of the channel. :resign-move: You may have meant to run /mchessemojis-game-opt-in instead");
+	if (!(channelInfo.channel.creator === userId)) return await interaction.respond("You aren't the channel creator, so you can not opt this bot in or out of the channel. :resign-move: You may have meant to run /mchessemojis-edit-opts instead");
 
 	const channelName = channelInfo.channel.name;
 	let MChessEmojis = getMChessEmojis();
@@ -428,7 +438,7 @@ app.command("/mchessemojis-channel-opt-out", async interaction => {
 		include_full_members: true
 	});
 	console.log(channelInfo.channel.creator);
-	if (!(channelInfo.channel.creator === userId)) return await interaction.respond("You aren't the channel creator, so you can not opt this bot in or out of the channel. :resign-move: You may have meant to run /mchessemojis-game-opt-out instead");
+	if (!(channelInfo.channel.creator === userId)) return await interaction.respond("You aren't the channel creator, so you can not opt this bot in or out of the channel. :resign-move: You may have meant to run /mchessemojis-edit-opts instead");
 
 	let MChessEmojis = getMChessEmojis();
 	if (!Object.keys(MChessEmojis.whiteListedChannels).includes(channelId))
