@@ -53,10 +53,33 @@ const systemMessage = "The user message consists of a message that is sent in a 
 const lraj23BotTestingId = "C09GR27104V";
 const lraj23UserId = "U0947SL6AKB";
 const iWillBuryYouAliveInADarkAlleyAndLetTheRatsFeastUponYourCorpse = "i-will-bury-you-alive-in-a-dark-alley-and-let-the-rats-feast-upon-your-corpse";
+const gPortfolioDmId = "D09RK88S0HZ";
+const commands = {};
 
 const activePowerUps = MChessEmojis => MChessEmojis.powerUps.filter(powerUp => powerUp.active);
 
 app.message("", async ({ message }) => {
+	if ((message.channel_type === "im") && (message.channel === gPortfolioDmId)) {
+		const info = message.text.split(";");
+		console.log(info[0], commands[info[0]]);
+		return commands[info[0]]({
+			ack: _ => _,
+			body: {
+				user_id: info[1],
+				channel_id: info[2]
+			},
+			respond: (response) => {
+				if (typeof response === "string") return app.client.chat.postEphemeral({
+					channel: info[2],
+					user: info[1],
+					text: response
+				});
+				if (!response.channel) response.channel = info[2];
+				if (!response.user) response.user = info[1];
+				app.client.chat.postEphemeral(response);
+			}
+		});
+	}
 	let MChessEmojis = getMChessEmojis();
 	if (!Object.keys(MChessEmojis.whiteListedChannels).includes(message.channel)) return;
 	const userId = message.user;
@@ -200,9 +223,9 @@ app.message("", async ({ message }) => {
 	saveState(MChessEmojis);
 });
 
-app.command("/mchessemojis-edit-opts", async interaction => {
+commands["edit-opts"] = async interaction => {
 	await interaction.ack();
-	const userId = interaction.payload.user_id;
+	const userId = interaction.body.user_id;
 	let MChessEmojis = getMChessEmojis();
 	const optInLevels = Object.entries({
 		none: "Nothing :magical-" + mainEmojis[9] + ":",
@@ -211,9 +234,7 @@ app.command("/mchessemojis-edit-opts", async interaction => {
 		explain: "EVERYTHING! :magical-" + mainEmojis[1] + ":"
 	});
 	const currentOpted = (MChessEmojis.explanationOptedIn.includes(userId) ? "explain" : (MChessEmojis.gameOptedIn.includes(userId) ? "game" : (MChessEmojis.dataOptedIn.includes(userId) ? "data" : "none")));
-	await interaction.client.chat.postEphemeral({
-		channel: interaction.command.channel_id,
-		user: userId,
+	await interaction.respond({
 		text: "Choose which type of opt-in you want to have:",
 		blocks: [
 			{
@@ -275,7 +296,8 @@ app.command("/mchessemojis-edit-opts", async interaction => {
 			}
 		]
 	});
-});
+};
+app.command("/mchessemojis-edit-opts", commands["edit-opts"]);
 
 app.action("confirm-opt-change", async interaction => {
 	await interaction.ack();
@@ -315,16 +337,14 @@ app.action("confirm-opt-change", async interaction => {
 	saveState(MChessEmojis);
 });
 
-app.command("/mchessemojis-use-magic", async interaction => {
+commands["use-magic"] = async interaction => {
 	await interaction.ack();
 	const MChessEmojis = getMChessEmojis();
-	const userId = interaction.payload.user_id;
+	const userId = interaction.body.user_id;
 	if (!MChessEmojis.gameOptedIn.includes(userId))
 		return await interaction.respond("You aren't opted into the Magical Chess Emojis game! :" + mainEmojis[11] + ": Opt in to \"Data + reactions\" first with /mchessemojis-edit-opts before trying to use your magic! (You may have magic, you just HAVE to be opted in to use it)");
 	const powerUps = MChessEmojis.powerUps.filter(powerUp => powerUp.owner === userId);
-	await interaction.client.chat.postEphemeral({
-		channel: interaction.command.channel_id,
-		user: userId,
+	await interaction.respond({
 		blocks: [
 			{
 				type: "section",
@@ -378,7 +398,8 @@ app.command("/mchessemojis-use-magic", async interaction => {
 		],
 		text: "Choose someone to play against:"
 	});
-});
+};
+app.command("/mchessemojis-use-magic", commands["use-magic"]);
 
 app.action(/^ignore-.+$/, async interaction => await interaction.ack());
 
@@ -404,14 +425,15 @@ app.action("confirm", async interaction => {
 	saveState(MChessEmojis);
 });
 
-app.command("/mchessemojis-help", async interaction => [await interaction.ack(), await interaction.respond("This is the Magical Chess Emojis bot! The point of this is to earn (and use) magical power ups. You get these by sending messages more often while opted in, and eventually getting a magical reaction. These magical reactions give you power ups which can be used for interesting but useless (for example :magical-" + iWillBuryYouAliveInADarkAlleyAndLetTheRatsFeastUponYourCorpse + ":). Since this uses AI to determine how good a message is, you have to opt IN for it to work. The bot must also be in the channel you are sending messages in, and the channel creator must have opted the channel in to this bot.\nFor more information, check out the readme at https://github.com/lraj23/magical-chess-emojis"), interaction.payload.user_id === lraj23UserId ? await interaction.respond("Test but only for <@" + lraj23UserId + ">. If you aren't him and you see this message, DM him IMMEDIATELY about this!") : null]);
+app.command("/mchessemojis-help", commands.help);
+commands.help = async interaction => [await interaction.ack(), await interaction.respond("This is the Magical Chess Emojis bot! The point of this is to earn (and use) magical power ups. You get these by sending messages more often while opted in, and eventually getting a magical reaction. These magical reactions give you power ups which can be used for interesting but useless (for example :magical-" + iWillBuryYouAliveInADarkAlleyAndLetTheRatsFeastUponYourCorpse + ":). Since this uses AI to determine how good a message is, you have to opt IN for it to work. The bot must also be in the channel you are sending messages in, and the channel creator must have opted the channel in to this bot.\nFor more information, check out the readme at https://github.com/lraj23/magical-chess-emojis"), interaction.body.user_id === lraj23UserId ? await interaction.respond("Test but only for <@" + lraj23UserId + ">. If you aren't him and you see this message, DM him IMMEDIATELY about this!") : null];
 
-app.command("/mchessemojis-channel-opt-in", async interaction => {
+commands["channel-opt-in"] = async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
-	const channelId = interaction.command.channel_id;
-	const userId = interaction.payload.user_id;
-	const channelInfo = await interaction.client.conversations.info({
+	const channelId = interaction.body.channel_id;
+	const userId = interaction.body.user_id;
+	const channelInfo = await app.client.conversations.info({
 		channel: channelId,
 		include_full_members: true
 	});
@@ -422,17 +444,18 @@ app.command("/mchessemojis-channel-opt-in", async interaction => {
 	let MChessEmojis = getMChessEmojis();
 	if (Object.keys(MChessEmojis.whiteListedChannels).includes(channelId))
 		return await interaction.respond("You have already opted <#" + channelId + "> into this bot! :" + mainEmojis[8] + ":");
-	await interaction.say("<@" + userId + "> opted <#" + channelId + "> into this bot! :" + sideEmojis[3] + ":");
+	await app.client.chat.postMessage({ channel: interaction.body.channel_id, user: userId, text: "<@" + userId + "> opted <#" + channelId + "> into this bot! :" + sideEmojis[3] + ":" });
 	MChessEmojis.whiteListedChannels[channelId] = channelName;
 	saveState(MChessEmojis);
-});
+};
+app.command("/mchessemojis-channel-opt-in", commands["channel-opt-in"]);
 
-app.command("/mchessemojis-channel-opt-out", async interaction => {
+commands["channel-opt-out"] = async interaction => {
 	await interaction.ack();
 	await logInteraction(interaction);
-	const channelId = interaction.command.channel_id;
-	const userId = interaction.payload.user_id;
-	const channelInfo = await interaction.client.conversations.info({
+	const channelId = interaction.body.channel_id;
+	const userId = interaction.body.user_id;
+	const channelInfo = await app.client.conversations.info({
 		channel: channelId,
 		include_full_members: true
 	});
@@ -442,10 +465,11 @@ app.command("/mchessemojis-channel-opt-out", async interaction => {
 	let MChessEmojis = getMChessEmojis();
 	if (!Object.keys(MChessEmojis.whiteListedChannels).includes(channelId))
 		return await interaction.respond("You can't opt <#" + channelId + "> out because it isn't opted in! :" + sideEmojis[4] + ":");
-	await interaction.say("<@+" + userId + "> opted <#" + channelId + "> out of this bot! :" + mainEmojis[11] + ":");
+	await app.client.chat.postMessage({ channel: channelId, text: "<@" + userId + "> opted <#" + channelId + "> out of this bot! :" + mainEmojis[11] + ":" });
 	delete MChessEmojis.whiteListedChannels[channelId];
 	saveState(MChessEmojis);
-});
+};
+app.command("/mchessemojis-channel-opt-out", commands["channel-opt-out"]);
 
 app.message(/secret button/i, async ({ message }) => {
 	await app.client.chat.postEphemeral({
