@@ -1,7 +1,8 @@
 import app from "./client.js";
 import { getMChessEmojis, logInteraction, saveState } from "./datahandler.js";
-const aiApiUrl = "https://ai.hackclub.com/chat/completions";
+const aiApiUrl = "https://ai.hackclub.com/proxy/v1/chat/completions";
 const headers = {
+	"Authorization": "Bearer " + process.env.CEMOJIS_AI_API_KEY,
 	"Content-Type": "application/json"
 };
 const mainEmojis = [
@@ -425,8 +426,8 @@ app.action("confirm", async interaction => {
 	saveState(MChessEmojis);
 });
 
-app.command("/mchessemojis-help", commands.help);
 commands.help = async interaction => [await interaction.ack(), await interaction.respond("This is the Magical Chess Emojis bot! The point of this is to earn (and use) magical power ups. You get these by sending messages more often while opted in, and eventually getting a magical reaction. These magical reactions give you power ups which can be used for interesting but useless (for example :magical-" + iWillBuryYouAliveInADarkAlleyAndLetTheRatsFeastUponYourCorpse + ":). Since this uses AI to determine how good a message is, you have to opt IN for it to work. The bot must also be in the channel you are sending messages in, and the channel creator must have opted the channel in to this bot.\nFor more information, check out the readme at https://github.com/lraj23/magical-chess-emojis"), interaction.body.user_id === lraj23UserId ? await interaction.respond("Test but only for <@" + lraj23UserId + ">. If you aren't him and you see this message, DM him IMMEDIATELY about this!") : null];
+app.command("/mchessemojis-help", commands.help);
 
 commands["channel-opt-in"] = async interaction => {
 	await interaction.ack();
